@@ -30,6 +30,7 @@ DEFAULT_CONFIG_PATH="~/project/nvtool/"
 BLOG_TAG="@blog"  # publish any text with presence of "@blog" in filename 
 # DB_FILENAME="db.yml"
 # LOG_FILENAME="nvtool.log"  # not implemented yet
+HANDLE_NAKED_URL=false
 
 $config= {}
 
@@ -101,36 +102,46 @@ def convert_line(line)
   #   line.gsub!(.....link)
   # end
   
-  # Handle GFM URL https://google.com ==> <https://google.com> if needed
+  # Handle naked URL
+  # Disabled due to bugginess and incompleteness at this time
+  #
+  # ie GFM URL https://google.com ==> <https://google.com> if needed
   # and images into ![]()
   # if matches = line.scan(/([\[<]*)[\s]*(https?\:\/\/[^\s\]>\)]+)/)
-  if matches = line.scan(/\s*([(<\[{]*)[\s]*(https?\:\/\/[^\s\]>\)}]+)/)
-    matches.each do |match|
+  # Cannot handle multiple identical URL in same line
+  # or src="http://...", etc. 
+  if HANDLE_NAKED_URL
 
-      possible_prefix=match[0] || '' # grabs any [,[[,<,(
+    if matches = line.scan(/\s*([(<\[{]*)[\s]*(https?\:\/\/[^\s\]>\)}]+)/)
+      matches.each do |match|
 
-      link=match[1]
-      
-      # if it starts with < or [, then ignore it..
-      if possible_prefix.start_with?(*%w([ <  { ! \( ))
-        # no action is required for those already inside brackets
-      else  
-      
-        # link to image means it's an image => ![pic](pic-url)
-        if url_is_image?(link)
-          new_link="![#{link}](#{link})"
-        else
-        # link to normal external url "www.google.com" => <www.google.com>
-          new_link="<#{link}>"
+        possible_prefix=match[0] || '' # grabs any [,[[,<,(
+
+        link=match[1]
+        
+        # if it starts with < or [, then ignore it..
+        if possible_prefix.start_with?(*%w([ <  { ! \( ))
+          # no action is required for those already inside brackets
+        else  
+        
+          # link to image means it's an image => ![pic](pic-url)
+          if url_is_image?(link)
+            new_link="![#{link}](#{link})"
+          else
+          # link to normal external url "www.google.com" => <www.google.com>
+            new_link="<#{link}>"
+          end
+          line.gsub!(link,new_link) #TODO: bug with same multiple URL in 1 line
         end
-        line.gsub!(link,new_link) #TODO: bug with same multiple URL in 1 line
       end
     end
-  end
   
+  end
   line
 end
 
+#
+#
 def convert_file(input_filename, output_filename)
   input=File.open(input_filename,"r") 
   output=File.new(output_filename,"w")
@@ -169,13 +180,18 @@ def get_jekyll_filename(input_file)
   # else
   if !slug
     slug=File.basename(input_file,".*").downcase.gsub(BLOG_TAG,"").strip
-    slug.gsub!(" ","-")  #replace space with dash
+    slug.gsub!(" ","-")  #replace filename's space with dash to match URL
   end
 
   File.join($config[:jekyll_path],"#{date}-#{slug}.md")
 
 end
 
+#
+# read configuration data.
+# As of now, config file is in ~/project/nvtool/config.yml.  
+# In the future, change it to ~/.nvtool.yml
+#
 def read_config
 
   config_file=File.join(File.expand_path(DEFAULT_CONFIG_PATH),CONFIG_FILENAME)
@@ -186,6 +202,8 @@ def read_config
   end
 end
 
+# 
+#
 def convert_texts_to_jekyll
 
   # db_file=File.join(File.expand_path(DEFAULT_CONFIG_PATH),DB_FILENAME)
