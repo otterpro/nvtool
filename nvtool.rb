@@ -32,7 +32,9 @@ BLOG_TAG="@blog"  # publish any text with presence of "@blog" in filename
 # LOG_FILENAME="nvtool.log"  # not implemented yet
 HANDLE_NAKED_URL=false
 
+# GLOBAL VAR
 $config= {}
+$jekyll_path=""
 
 def debug(text)
   puts text
@@ -42,10 +44,51 @@ def url_is_image?(url)
   url.downcase.end_with?(*%w(.jpg .png .jpeg .gif))
 end
 
+# given an URL, it retrieves last part of URL
+# Else, returns whole string.
+#
+# "http://example.com/some/where/from/here.html" ==> "here.html"
+def get_url_end_path(url)
+  title=url
+  
+  if match=url.match(/^https?\:\/\/[\S]+\/([\S]+)\s*/i)
+    title=match[1] # extract the last part of URL
+  end
+  title=title[1..-1] if title[0]=='/' # remove leading "/"
+  title
+end
+
+# convert slug into readable title
+# "my-first-post@blog" ==> "my first post"
 def deslugify(title)
-  title=title[1..-1] if title[0]=='/' # remove leading "/" on title, though
-  #strip "#..", "@blog".
-  title.strip.gsub(/[\-_]/, ' ').gsub(/\#.*/,'').gsub(BLOG_TAG,"")
+  title = get_url_end_path(title)
+  # strip "#blog", and 
+  # title.strip.gsub(/[\-_]/, ' ').gsub(/\#.*/,'').gsub(BLOG_TAG,"")
+  title.strip.gsub(/[\-_]/, ' ').gsub(BLOG_TAG,"")
+end
+
+# given an url to an image file, convert URL to markdown image
+# convert "http://example.com/pic_some.jpg" into "![pic some](http://....)"
+def make_image_from_url(url)
+  # title=url.match(/^https?\:\/\/[\S]+\/([\S]+\.[\w]+)\s*/i)
+  # new_link="![#{title[1]}](#{url})"
+  title=get_url_end_path(url)
+  new_link="![#{title}](#{url})"
+
+end
+
+# given an url to flickr, convert to flickr liquid tag
+# converts "https://www.flickr.com/photos/something/1234567/..." to 
+# "{% flickr_photo 1234567 %}"
+# It is careful to extract only the 3rd element of the path
+def make_flickr_url(url)
+  match = url.match(/^https?\:\/\/www\.flickr\.com\/[\w]+\/[\w]+\/([\d]+)/i)
+  "{% flickr_photo #{match[1]} %}"
+end
+
+#TODO
+def make_youtube_url(url)
+  url
 end
 
 # 
@@ -101,41 +144,28 @@ def convert_line(line)
   # link = do_something(match.captures[0])
   #   line.gsub!(.....link)
   # end
-  
-  # Handle naked URL
-  # Disabled due to bugginess and incompleteness at this time
+
+  # Handle naked URL, on its own line.
+  # However, it does not handle URL that is inside the text, due to 
+  # not having enough time to do it.
+
   #
   # ie GFM URL https://google.com ==> <https://google.com> if needed
-  # and images into ![]()
-  # if matches = line.scan(/([\[<]*)[\s]*(https?\:\/\/[^\s\]>\)]+)/)
-  # Cannot handle multiple identical URL in same line
-  # or src="http://...", etc. 
-  if HANDLE_NAKED_URL
+  if link  = line[/^(https?\:\/\/[\S]+)/i]
 
-    if matches = line.scan(/\s*([(<\[{]*)[\s]*(https?\:\/\/[^\s\]>\)}]+)/)
-      matches.each do |match|
 
-        possible_prefix=match[0] || '' # grabs any [,[[,<,(
-
-        link=match[1]
-        
-        # if it starts with < or [, then ignore it..
-        if possible_prefix.start_with?(*%w([ <  { ! \( ))
-          # no action is required for those already inside brackets
-        else  
-        
-          # link to image means it's an image => ![pic](pic-url)
-          if url_is_image?(link)
-            new_link="![#{link}](#{link})"
-          else
-          # link to normal external url "www.google.com" => <www.google.com>
-            new_link="<#{link}>"
-          end
-          line.gsub!(link,new_link) #TODO: bug with same multiple URL in 1 line
-        end
-      end
+    # link to image means it's an image => ![pic](pic-url)
+    if url_is_image?(link)
+      new_link=make_image_from_url(link)
+    elsif link.include?("www.flickr.com")
+      new_link = make_flickr_url(link)
+    elsif link.include?("youtube.com")
+      new_link = make_youtube_url(link)
+    else
+      # naked URL: "https://www.google.com" => <www.google.com>
+      new_link="<#{link}>"
     end
-  
+    line.sub!(link,new_link) # replace 1st occurrence only
   end
   line
 end
@@ -173,7 +203,7 @@ def get_jekyll_filename(input_file)
     # no front-matter found in input_file
   end
   if !date# dates: use file creation date as last resort
-    date=File.birthtime(input_file).strftime("%Y-%m-%d").to_s
+    date=File.mtime(input_file).strftime("%Y-%m-%d").to_s
   end
   # if slug
     # ignore all slug/permalink and also mark the slug as invalid
@@ -183,7 +213,8 @@ def get_jekyll_filename(input_file)
     slug.gsub!(" ","-")  #replace filename's space with dash to match URL
   end
 
-  File.join($config[:jekyll_path],"#{date}-#{slug}.md")
+  File.join($jekyll_path,"#{date}-#{slug}.md")
+  # File.join($config[:jekyll_path],"#{date}-#{slug}.md")
 
 end
 
@@ -214,8 +245,10 @@ def convert_texts_to_jekyll
   # end
   
   convert_count=0
+  notes_path = File.expand_path($config[:notes_path])  
+  $jekyll_path= File.expand_path($config[:jekyll_path])
 
-  Dir[File.join($config[:notes_path],"*"+BLOG_TAG+"*.txt")].each do |input_file|
+  Dir[File.join(notes_path,"*"+BLOG_TAG+"*.txt")].each do |input_file|
     output_file = get_jekyll_filename(input_file)  
 
     if !$config[:force] 
@@ -253,6 +286,8 @@ def read_commandline_option
 end
 
 if __FILE__ == $0   
+  puts "ruby version"
+  puts RUBY_VERSION
   read_config
   read_commandline_option
   convert_texts_to_jekyll
