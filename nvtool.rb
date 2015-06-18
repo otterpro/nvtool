@@ -27,17 +27,24 @@ require 'optparse'
 
 CONFIG_FILENAME="config.yml"
 DEFAULT_CONFIG_PATH="~/project/nvtool/"
-BLOG_TAG="@blog"  # publish any text with presence of "@blog" in filename 
-# DB_FILENAME="db.yml"
-# LOG_FILENAME="nvtool.log"  # not implemented yet
-HANDLE_NAKED_URL=false
+
+# Default setting values
+# TODO: possibly put these in the config.yml
+BLOG_TAG="#blog"  # publish any text with presence of "#blog" in filename 
+# TODO: Read these from Jekyll's config.yml if possible
+JEKYLL_POST_DIR="_posts"
+JEKYLL_PAGE_DIR="_pages"
 
 # GLOBAL VAR
 $config= {}
 $jekyll_path=""
+$post_path=""
+$page_path=""
 
-def debug(text)
-  puts text
+def d(text)
+  if $config[:debug] 
+    puts text
+  end
 end
 
 def url_is_image?(url)
@@ -153,7 +160,6 @@ def convert_line(line)
   # ie GFM URL https://google.com ==> <https://google.com> if needed
   if link  = line[/^(https?\:\/\/[\S]+)/i]
 
-
     # link to image means it's an image => ![pic](pic-url)
     if url_is_image?(link)
       new_link=make_image_from_url(link)
@@ -185,37 +191,61 @@ def convert_file(input_filename, output_filename)
   
 end
 
-# 
+# posts :
 # rename "/txt/blog_post.txt" ==> "/jekyll/_posts/2015-06-01-blog-post.md"
-# * "BLOG 123.TXT" ==> "blog-123.txt"
+# pages :
+# rename "/foo/bar/BLOG 123.TXT" ==> "/jekyll/_pages/blog-123.txt"
 #
-def get_jekyll_filename(input_file)
+def make_jekyll_filename(input_file)
   # find dates 
   # dates: use yaml front-matter, if it exists
   date=nil
   slug=nil
+  layout=nil
+  page_or_post_path=JEKYLL_POST_DIR  #by default, goes to "_posts"
+    filename_prefix=""
+
+    d "input file=#{input_file}"
   begin
     front_matter= YAML.load_file(input_file)
-    date = front_matter["date"].strftime("%Y-%m-%d").to_s
-    slug= front_matter["permalink"]  #currently, this is ignored.
-
   rescue
     # no front-matter found in input_file
+    d "no front-matter"
   end
-  if !date# dates: use file creation date as last resort
-    date=File.mtime(input_file).strftime("%Y-%m-%d").to_s
+    date = front_matter["date"]
+    # slug= front_matter["permalink"]  #currently, this is ignored.
+    # title= front_matter["title"]  
+    layout = front_matter["layout"]  #used to determine if page or post
+
+  if !date
+    # dates: use file creation date as last resort
+    date=File.mtime(input_file)
   end
+    date = date.strftime("%Y-%m-%d").to_s
   # if slug
     # ignore all slug/permalink and also mark the slug as invalid
   # else
-  if !slug
-    slug=File.basename(input_file,".*").downcase.gsub(BLOG_TAG,"").strip
-    slug.gsub!(" ","-")  #replace filename's space with dash to match URL
+
+  
+  # if !slug
+  #   slug=File.basename(input_file,".*").downcase.gsub(BLOG_TAG,"").strip
+  #   slug.gsub!(" ","-")  #replace filename's space with dash to match URL
+  # end
+  title=File.basename(input_file,".*").downcase.gsub(BLOG_TAG,"").strip
+  title.gsub!(" ","-")  #replace filename's space with dash to match URL
+  if layout
+    puts "layout: #{layout}"
   end
 
-  File.join($jekyll_path,"#{date}-#{slug}.md")
-  # File.join($config[:jekyll_path],"#{date}-#{slug}.md")
+  # PAGE
+  if layout && layout.downcase == "page"  # this txt is page, not post
+    page_or_post_path=JEKYLL_PAGE_DIR  
 
+  # POST
+  else
+    filename_prefix="#{date}-"
+  end
+  File.join($jekyll_path,page_or_post_path,"#{filename_prefix}#{title}.md")
 end
 
 #
@@ -239,17 +269,15 @@ def convert_texts_to_jekyll
 
   # db_file=File.join(File.expand_path(DEFAULT_CONFIG_PATH),DB_FILENAME)
   # store=YAML::Store.new db_file
-  # store.transaction do 
-  #   $config[:notes_path] = store["notes_path"]
-  #   $config[:jekyll_path] = store["jekyll_path"]
-  # end
   
   convert_count=0
   notes_path = File.expand_path($config[:notes_path])  
   $jekyll_path= File.expand_path($config[:jekyll_path])
+  $post_path=File.join($jekyll_path,JEKYLL_POST_DIR )
+  $page_path=File.join($jekyll_path,JEKYLL_PAGE_DIR )
 
   Dir[File.join(notes_path,"*"+BLOG_TAG+"*.txt")].each do |input_file|
-    output_file = get_jekyll_filename(input_file)  
+    output_file = make_jekyll_filename(input_file) 
 
     if !$config[:force] 
       if File.exists?(output_file)
@@ -258,7 +286,7 @@ def convert_texts_to_jekyll
         next if input_date <= output_date
       end
     end
-    debug "processing #{input_file} to #{output_file}"
+    d "processing #{input_file} to #{output_file}"
     convert_file(input_file,output_file)
     convert_count+=1
   end
@@ -277,6 +305,10 @@ def read_commandline_option
       $config[:force] = true
     end
 
+    opts.on("-d", "--debug", "Show all debugging message") do |v|
+      $config[:debug] = true
+    end
+
     opts.on_tail("-h", "--help", "Show this message") do
       puts opts
       exit
@@ -286,8 +318,7 @@ def read_commandline_option
 end
 
 if __FILE__ == $0   
-  puts "ruby version"
-  puts RUBY_VERSION
+  d "ruby version #{RUBY_VERSION}"
   read_config
   read_commandline_option
   convert_texts_to_jekyll
