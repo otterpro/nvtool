@@ -24,6 +24,7 @@
 # require 'yaml'
 require 'yaml/store'
 require 'optparse'
+require 'fileutils'
 
 CONFIG_FILENAME="config.yml"
 DEFAULT_CONFIG_PATH="~/project/nvtool/"
@@ -35,23 +36,34 @@ BLOG_TAG="#blog"  # publish any text with presence of "#blog" in filename
 JEKYLL_POST_DIR="_posts"
 JEKYLL_PAGE_DIR="_pages"
 
-# GLOBAL VAR
-$config= {}
+# GLOBAL VAR, set by config or in front-matter
+$config= {}       # config.yml
 $jekyll_path=""
 $post_path=""
 $page_path=""
+$front_matter={}  # current page's front-matter
 
-def d(text)
+# debug print
+def dd(text1, text2=nil)
   if $config[:debug] 
-    puts text
+    puts text1
+    puts " = #{text2}" if text2
   end
 end
 
+# debug print if obj is not nil
+def dd_if(obj,text1,text2=nil)
+  if $config[:debug] && obj
+    dd text1, text2
+  end
+end
+
+# true if string/path/url seems like an image file
 def url_is_image?(url)
   url.downcase.end_with?(*%w(.jpg .png .jpeg .gif))
 end
 
-# given an URL, it retrieves last part of URL
+# given an URL, it retrieves last segment of URL path
 # Else, returns whole string.
 #
 # "http://example.com/some/where/from/here.html" ==> "here.html"
@@ -188,64 +200,75 @@ def convert_file(input_filename, output_filename)
     end
   input.close
   output.close
+rescue 
+  puts "ERROR: failed while reading/writing file"
   
 end
 
-# posts :
+# read each article's front matter
+def read_front_matter(input_file)
+    $front_matter= YAML.load_file(input_file) || { }
+  rescue
+    # no front-matter found in input_file
+    $front_matter={}
+    dd "WARNING:no front-matter"
+end
+
+# checks to see if there is already an output file in the _posts/_pages dir
+# and returns that filename.
+# If the output file doesn't exist, generate a filename given the date of the article
+# posts  ----
 # rename "/txt/blog_post.txt" ==> "/jekyll/_posts/2015-06-01-blog-post.md"
-# pages :
+# pages -----
 # rename "/foo/bar/BLOG 123.TXT" ==> "/jekyll/_pages/blog-123.txt"
 #
-def make_jekyll_filename(input_file)
+def get_jekyll_filename(input_file)
   # find dates 
   # dates: use yaml front-matter, if it exists
   date=nil
   slug=nil
   layout=nil
-  page_or_post_path=JEKYLL_POST_DIR  #by default, goes to "_posts"
-    filename_prefix=""
-
-    d "input file=#{input_file}"
-  begin
-    front_matter= YAML.load_file(input_file)
-  rescue
-    # no front-matter found in input_file
-    d "no front-matter"
-  end
-    date = front_matter["date"]
-    # slug= front_matter["permalink"]  #currently, this is ignored.
-    # title= front_matter["title"]  
-    layout = front_matter["layout"]  #used to determine if page or post
-
-  if !date
-    # dates: use file creation date as last resort
-    date=File.mtime(input_file)
-  end
-    date = date.strftime("%Y-%m-%d").to_s
-  # if slug
-    # ignore all slug/permalink and also mark the slug as invalid
-  # else
-
+  additional_copy_to=nil  # 
+  is_a_post=true    # true=post, false=page
   
-  # if !slug
-  #   slug=File.basename(input_file,".*").downcase.gsub(BLOG_TAG,"").strip
-  #   slug.gsub!(" ","-")  #replace filename's space with dash to match URL
-  # end
-  title=File.basename(input_file,".*").downcase.gsub(BLOG_TAG,"").strip
-  title.gsub!(" ","-")  #replace filename's space with dash to match URL
-  if layout
-    puts "layout: #{layout}"
-  end
+  # page_or_post_path=JEKYLL_POST_DIR  #by default, goes to "_posts"
+  filename_prefix=""
 
-  # PAGE
+  date = $front_matter["date"]
+  # slug= front_matter["permalink"]  #currently, this is ignored.
+  # title= front_matter["title"]  
+  layout = $front_matter["layout"]  #used to determine if page or post
+
+
+  basename=File.basename(input_file,".*").downcase.gsub(BLOG_TAG,"").strip
+  basename.gsub!(" ","-")  #replace filename's space with dash to match URL
+
+  dd_if layout, "layout found: #{layout}"
+
+
   if layout && layout.downcase == "page"  # this txt is page, not post
-    page_or_post_path=JEKYLL_PAGE_DIR  
-
-  # POST
+    dd "##### PAGE #########"
+    # page_or_post_path=JEKYLL_PAGE_DIR  
+    is_a_post=false
+    filename=File.join($jekyll_path,JEKYLL_PAGE_DIR,"#{basename}.md")
   else
-    filename_prefix="#{date}-"
+    dd "##### POST #########"
+    # choose the first match
+    existing_filename=Dir[File.join($jekyll_path,JEKYLL_POST_DIR,"*#{basename}.md")][0]
+    if existing_filename 
+      # found a matching filename.
+      filename=existing_filename
+      date_str=""
+    else
+      # no matching file, thus need to generate filename using date of article
+        # dates: use file creation date as last resort
+      date=File.mtime(input_file) unless date
+      date_str = date.strftime("%Y-%m-%d").to_s
+      filename=File.join($jekyll_path,JEKYLL_POST_DIR,"#{date_str}-#{basename}.md")
+    end
   end
-  File.join($jekyll_path,page_or_post_path,"#{filename_prefix}#{title}.md")
+  # dd "filename", filename
+  filename
 end
 
 #
@@ -277,7 +300,12 @@ def convert_texts_to_jekyll
   $page_path=File.join($jekyll_path,JEKYLL_PAGE_DIR )
 
   Dir[File.join(notes_path,"*"+BLOG_TAG+"*.txt")].each do |input_file|
-    output_file = make_jekyll_filename(input_file) 
+    dd "=============================="
+    dd "input file=#{input_file}"
+    read_front_matter(input_file)
+    dd "front-matter=#{$front_matter}"
+  
+    output_file = get_jekyll_filename(input_file) 
 
     if !$config[:force] 
       if File.exists?(output_file)
@@ -286,9 +314,17 @@ def convert_texts_to_jekyll
         next if input_date <= output_date
       end
     end
-    d "processing #{input_file} to #{output_file}"
+    dd "output file=#{output_file}"
+
     convert_file(input_file,output_file)
     convert_count+=1
+    
+    # make additional copies if needed.
+    additional_copy_path = $front_matter["additional_copy_path"]
+    if additional_copy_path
+      FileUtils.cp(output_file,File.expand_path(additional_copy_path))
+      dd "additional_copy: #{additional_copy_path}"
+    end
   end
 
   puts "Converted #{convert_count} files."
@@ -318,7 +354,7 @@ def read_commandline_option
 end
 
 if __FILE__ == $0   
-  d "ruby version #{RUBY_VERSION}"
+  dd "ruby version #{RUBY_VERSION}"
   read_config
   read_commandline_option
   convert_texts_to_jekyll
