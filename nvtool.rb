@@ -34,7 +34,7 @@ DEFAULT_CONFIG_PATH="~/project/nvtool/"
 BLOG_TAG="#blog"  # publish any text with presence of "#blog" in filename 
 # TODO: Read these from Jekyll's config.yml if possible
 JEKYLL_POST_DIR="_posts"
-JEKYLL_PAGE_DIR="_pages"
+JEKYLL_PAGE_DIR="page" # used to be "_pages", but jekyll ignores underscore dir
 
 # GLOBAL VAR, set by config or in front-matter
 $config= {}       # config.yml
