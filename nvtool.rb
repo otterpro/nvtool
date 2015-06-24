@@ -299,18 +299,21 @@ def convert_texts_to_jekyll
   $post_path=File.join($jekyll_path,JEKYLL_POST_DIR )
   $page_path=File.join($jekyll_path,JEKYLL_PAGE_DIR )
 
-  Dir[File.join(notes_path,"*"+BLOG_TAG+"*.txt")].each do |input_file|
+  Dir[File.join(notes_path,"*#{BLOG_TAG}*.txt")].each do |input_file|
     dd "=============================="
     dd "input file=#{input_file}"
     read_front_matter(input_file)
     dd "front-matter=#{$front_matter}"
   
     output_file = get_jekyll_filename(input_file) 
+    dd "output_file", output_file
 
     if !$config[:force] 
       if File.exists?(output_file)
         input_date = File.mtime(input_file)
         output_date = File.mtime(output_file)
+        dd "input_date", input_date
+        dd "output_date", output_date
         next if input_date <= output_date
       end
     end
