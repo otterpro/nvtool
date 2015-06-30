@@ -34,7 +34,9 @@ DEFAULT_CONFIG_PATH="~/project/nvtool/"
 BLOG_TAG="#blog"  # publish any text with presence of "#blog" in filename 
 # TODO: Read these from Jekyll's config.yml if possible
 JEKYLL_POST_DIR="_posts"
-JEKYLL_PAGE_DIR="page" # used to be "_pages", but jekyll ignores underscore dir
+JEKYLL_PAGE_DIR="page" 
+# was "_pages", jekyll ignores underscore dir, so it won't show
+# TODO: change dirname to be more appropriate and fix weird permalink/URL
 
 # GLOBAL VAR, set by config or in front-matter
 $config= {}       # config.yml
@@ -298,6 +300,11 @@ def convert_texts_to_jekyll
   $jekyll_path= File.expand_path($config[:jekyll_path])
   $post_path=File.join($jekyll_path,JEKYLL_POST_DIR )
   $page_path=File.join($jekyll_path,JEKYLL_PAGE_DIR )
+
+  dd "notes_path", notes_path
+  dd "jekyll_path",$jekyll_path
+  dd "post_path", $post_path
+  dd "page_path", $page_path
 
   Dir[File.join(notes_path,"*#{BLOG_TAG}*.txt")].each do |input_file|
     dd "=============================="
