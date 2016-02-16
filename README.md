@@ -6,13 +6,12 @@ tags: nvtool
 category: project
 ---
 
-NVTool is a tool I wrote to assist in publishing my text documents to Jekyll as
-well as to other projects. Originally, I used Notational Velocity on Mac, as it
-is the best text managing editor that I'd ever used.  However, since I was also
-on Linux, I began using Vim along with slew of plugins to imitate Notational
-Velocity as much as I could.
+NVTool is a blog workflow tool I wrote to assist in publishing my text documents to Jekyll as
+well as to other projects. Originally, I used Notational Velocity on Mac,
+because I loved its instant note searching capability.
+However, since I was also on Linux, I began using Vim along with slew of plugins to imitate Notational Velocity as much as I could.
 
-While I could just start writing text files inside the Jekyll's _posts
+While I could just start writing text files inside the Jekyll's `_posts`
 directory,  I don't like the file naming format for each blog posts, which need
 to start with date. 
 It will create blog posts without having to name the files to the Jekyll's naming
@@ -20,7 +19,6 @@ convention.
 
 For example, it will name the blog post called "My first day at work.txt" to
 "2015-07-01-my-first-day-at-work.md"
-
 
 NVTool grabs all text files with "#blog" in its filename for further processing.
 For example, a file called "About Me #blog.txt" will be processed.
@@ -36,14 +34,12 @@ location, if desired.
 
 Alternative
 ===========
-There are other tools that handle some of the tasks that needed.
+There are other tools that can handle similar tasks, and will be
+considered for future update.
 
 * [Jekyll Assett Pipeline](https://github.com/matthodan/jekyll-asset-pipeline)
 * Grunt
 * Rakefile
-
-However, these were limited when it came to parsing and translating the text
-files.
 
 Prerequisite
 =======
@@ -57,7 +53,7 @@ Run in command line.  Only the newly updated files will be processed.
 
     ruby nvtool.rb
 
--- force, -f processes all files, even if it is not necessary.
+`-- force`, `-f` processes all files, even if it is not necessary.
 
     ruby nvtool.rb -f
 
@@ -85,7 +81,7 @@ Each document can have YAML front matter, as it is on Jekyll.
     page.  NVTool will send all post to _posts/ directory and all page to
     _pages/
 
-    additional_copy_path: ~/project/abc/README.md
+    additional_copy_path: `~/project/abc/README.md`
 
 * If specified, the output file will also be copied to another location. It is
     useful for generating additional copy to be used for another projects or
