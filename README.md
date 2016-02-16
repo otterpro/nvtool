@@ -5,8 +5,7 @@ additional_copy_path: ~/project/nvtool/README.md
 tags: nvtool
 category: project
 ---
-Summary
-========
+
 NVTool is a tool I wrote to assist in publishing my text documents to Jekyll as
 well as to other projects. Originally, I used Notational Velocity on Mac, as it
 is the best text managing editor that I'd ever used.  However, since I was also
@@ -39,7 +38,7 @@ Alternative
 ===========
 There are other tools that handle some of the tasks that needed.
 
-* [Jekyll Asse://github.com/matthodan/jekyll-asset-pipelinet Pipeline](https://github.com/matthodan/jekyll-asset-pipeline)
+* [Jekyll Assett Pipeline](https://github.com/matthodan/jekyll-asset-pipeline)
 * Grunt
 * Rakefile
 
