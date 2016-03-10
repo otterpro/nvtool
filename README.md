@@ -1,8 +1,8 @@
 ---
 title: NVTool
-#layout: page
 additional_copy_path: ~/project/nvtool/README.md
 tags: nvtool
+hide_date: true
 category: project
 ---
 
@@ -17,14 +17,14 @@ to start with date.
 It will create blog posts without having to name the files to the Jekyll's naming
 convention.  
 
-For example, it will name the blog post called "My first day at work.txt" to
-"2015-07-01-my-first-day-at-work.md"
+For example, it will name the blog post called `My first day at work.txt` to
+`2015-07-01-my-first-day-at-work.md`
 
-NVTool grabs all text files with "#blog" in its filename for further processing.
-For example, a file called "About Me #blog.txt" will be processed.
+NVTool grabs all text files with `#blog` in its filename for further processing.
+For example, a file called `About Me #blog.txt` will be processed.
 
 NVTool translates internal links used in the text, following the Notational Velocity. 
-Internal links are created using square brackets such as "[Another Page](/another-page)".  
+Internal links are created using square brackets such as `[[Another Page]]`.
 It is compatible with Notational Velocity, and looks somewhat similar to
 Wikipedia's Interwiki link format.
 
@@ -34,12 +34,11 @@ location, if desired.
 
 Alternative
 ===========
-There are other tools that can handle similar tasks, and will be
+There are other tools that can handle certain parts of the workflow, and will be
 considered for future update.
 
 * [Jekyll Assett Pipeline](https://github.com/matthodan/jekyll-asset-pipeline)
-* Grunt
-* Rakefile
+* Grunt/Gulp/Rakefile
 
 Prerequisite
 =======
@@ -57,19 +56,18 @@ Run in command line.  Only the newly updated files will be processed.
 
     ruby nvtool.rb -f
 
-
 Configuration
 ========
-config.yml contains the system-wide setting.
+`config.yml` contains the system-wide setting.
 
     notes_path: "~/_notes"
     jekyll_path: "~/www/jekyll-site"
 
-* notes_path: path where original text files are located. On Notational
-    Velocity, this is usually in the "~/Library/Application Support/Notational
-    Data". Make sure that Notational Velocity is using "Plain Text Files", not
+* `notes_path:` path where original text files are located. On Notational
+    Velocity, this is usually in the `~/Library/Application Support/Notational
+    Data`. Make sure that Notational Velocity is using "Plain Text Files", not
     its binary database format. I usually assign the directory to `_notes/`.
-* jekyll_path: jekyll's path, and should include _posts, and _pages directories.
+* `jekyll_path:` jekyll's path, and should include _posts, and _pages directories.
 
 Front Matter
 =====
@@ -78,8 +76,8 @@ Each document can have YAML front matter, as it is on Jekyll.
     layout: page
 
 * It is used by Jekyll to determine the layout file.  With NVTool, by default, all entries are considered posts, unless the layout is set to
-    page.  NVTool will send all post to _posts/ directory and all page to
-    _pages/
+    page.  NVTool will send all post to `_posts/` directory and all page to
+    `_pages/`
 
     additional_copy_path: `~/project/abc/README.md`
 

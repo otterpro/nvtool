@@ -39,7 +39,7 @@ JEKYLL_PAGE_DIR="page"
 # TODO: change dirname to be more appropriate and fix weird permalink/URL
 
 # GLOBAL VAR, set by config or in front-matter
-$config= {}       # config.yml
+$config= {}       # contains config from config.yml
 $jekyll_path=""
 $post_path=""
 $page_path=""
@@ -154,7 +154,9 @@ end
 #
 def convert_line(line)
   # Handle [[internal-link]]
-  if matches= line.scan(/\[\[(.*?)\]\]/)
+  #if matches= line.scan(/\[\[(.*?)\]\]/)
+  # added `| to prevent it from converting `[[
+  if matches= line.scan(/`|(\[\[(.*?)\]\])/)
     matches.each do |match|
       link = convert_link(match[0])
       line.gsub!(/\[\[#{match[0]}\]\]/,link)
@@ -214,6 +216,7 @@ def read_front_matter(input_file)
     # no front-matter found in input_file
     $front_matter={}
     dd "WARNING:no front-matter"
+    # TODO: add front-matter automatically
 end
 
 # checks to see if there is already an output file in the _posts/_pages dir
@@ -246,7 +249,6 @@ def get_jekyll_filename(input_file)
   basename.gsub!(" ","-")  #replace filename's space with dash to match URL
 
   dd_if layout, "layout found: #{layout}"
-
 
   if layout && layout.downcase == "page"  # this txt is page, not post
     dd "##### PAGE #########"
