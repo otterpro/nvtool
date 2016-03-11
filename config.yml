@@ -1,3 +1,6 @@
 ---
 notes_path: "~/_notes"
 jekyll_path: "~/project/otter.pro/apricot-jekyll"
+auto_tag:
+- text: python
+  tag: python

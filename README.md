@@ -20,8 +20,8 @@ convention.
 For example, it will name the blog post called `My first day at work.txt` to
 `2015-07-01-my-first-day-at-work.md`
 
-NVTool grabs all text files with `#blog` in its filename for further processing.
-For example, a file called `About Me #blog.txt` will be processed.
+NVTool grabs all text files with `!blog` in its filename and ignore all others.
+For example, a file called `About Me !blog.txt` will be processed.
 
 NVTool translates internal links used in the text, following the Notational Velocity. 
 Internal links are created using square brackets such as `[[Another Page]]`.
@@ -83,7 +83,7 @@ Each document can have YAML front matter, as it is on Jekyll.
 
 * If specified, the output file will also be copied to another location. It is
     useful for generating additional copy to be used for another projects or
-    blogs.  I use this to generate README.md for several projects, including
+    blogs.  I use this to generate `README.md` for several projects, including
     this one.
 
 

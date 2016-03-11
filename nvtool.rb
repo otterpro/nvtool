@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 # nvtool.rb (ruby 1.9+)
-# version: 0.1
+# version: 2016.0310
 # Daniel Kim (http://www.otter.pro)
 #
 # Goes through all the text files, searching for blog submission
@@ -20,6 +20,14 @@
 #   Don't use permalink field on each post, or it will break the [[link]]
 #   MAYBE: parse each file in 2 phase system where slugs are stored in DB
 #     and use that to point to the right link
+#
+# History
+# =====================================================================
+# 3/10/16: changed filename format from "#blog.txt" to "!blog.txt"
+#         because "#" in filename was too troublesome and it also didn't work
+#         with vim-fugitive's :Gmove command.
+#         I wanted to use @blog, but "@" doesn't work well with vim's ctrl-P
+#
 
 # require 'yaml'
 require 'yaml/store'
@@ -31,7 +39,7 @@ DEFAULT_CONFIG_PATH="~/project/nvtool/"
 
 # Default setting values
 # TODO: possibly put these in the config.yml
-BLOG_TAG="#blog"  # publish any text with presence of "#blog" in filename 
+BLOG_TAG="!blog"  # publish any text with presence of "!blog" in filename 
 # TODO: Read these from Jekyll's config.yml if possible
 JEKYLL_POST_DIR="_posts"
 JEKYLL_PAGE_DIR="page" 
@@ -80,10 +88,10 @@ def get_url_end_path(url)
 end
 
 # convert slug into readable title
-# "my-first-post@blog" ==> "my first post"
+# "my-first-post!blog" ==> "my first post"
 def deslugify(title)
   title = get_url_end_path(title)
-  # strip "#blog", and 
+  # strip "!blog", and 
   # title.strip.gsub(/[\-_]/, ' ').gsub(/\#.*/,'').gsub(BLOG_TAG,"")
   title.strip.gsub(/[\-_]/, ' ').gsub(BLOG_TAG,"")
 end
@@ -132,7 +140,7 @@ def convert_link(link)
     else  # normal internal link ie [[about]]
       # Fix URL
       url="/"+url if url[0]!='/'  #always prepend "/" to internal links
-      # remove "@blog", replace space with "-"
+      # remove "!blog", replace space with "-"
       url = url.gsub(BLOG_TAG,"").gsub(" ","-").strip
 
       title=deslugify(title)
@@ -150,7 +158,7 @@ def convert_link(link)
 end
 
 # 
-# Process each line of text here
+# Process each line of text here. This is where most of conversion takes place
 #
 def convert_line(line)
   # Handle [[internal-link]]
@@ -192,11 +200,36 @@ def convert_line(line)
   line
 end
 
+def convert_front_matter(input,output)
+
+  front-matter={}
+  # read 1st line
+  line=input.readline
+  if line.start_with?("---")
+    # YAML
+    # http://ruby-doc.org/stdlib-2.2.3/libdoc/yaml/rdoc/YAML.html
+    #front-matter= READ IT HERE
+  else
+    # automatically create a blank YML
+    # TODO: FIXME: make sure to put back the old line back
+    #input.go back to line 0
+  end
+
+  # write "---", 
+  # write YAML config to putut
+  # add auto-tags to output
+  # add other front-matter
+end
+
+
+
 #
 #
 def convert_file(input_filename, output_filename)
   input=File.open(input_filename,"r") 
   output=File.new(output_filename,"w")
+  # TODO: uncomment below, and implement convert_front_matter
+  #convert_front_matter(input,output)
     while !input.eof?
       line=input.readline
       # puts "convert_line #{line}"
@@ -205,7 +238,7 @@ def convert_file(input_filename, output_filename)
   input.close
   output.close
 rescue 
-  puts "ERROR: failed while reading/writing file"
+  puts "ERROR: failed while reading/writing file: #{input_filename}"
   
 end
 
@@ -267,7 +300,11 @@ def get_jekyll_filename(input_file)
       # no matching file, thus need to generate filename using date of article
         # dates: use file creation date as last resort
       date=File.mtime(input_file) unless date
-      date_str = date.strftime("%Y-%m-%d").to_s
+      begin 
+        date_str = date.strftime("%Y-%m-%d").to_s
+      rescue
+        puts "ERROR in Date format in front-matter: #{input_file}"
+      end
       filename=File.join($jekyll_path,JEKYLL_POST_DIR,"#{date_str}-#{basename}.md")
     end
   end
